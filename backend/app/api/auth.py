@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 import jwt
 
@@ -13,22 +14,25 @@ from backend.app.core.security import (
 )
 from backend.app.models import User
 
-
-router = APIRouter(
-    prefix="/auth",
-    tags=["Authentication"],
-)
-
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
+
+
+class AuthRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=128)
 
 
 @router.post("/register")
 def register(
-    email: str,
-    password: str,
+    auth_data: AuthRequest,
     db: Session = Depends(get_db),
 ):
-    existing_user = db.query(User).filter(User.email == email).first()
+    existing_user = (
+        db.query(User)
+        .filter(User.email == auth_data.email)
+        .first()
+    )
 
     if existing_user:
         raise HTTPException(
@@ -37,8 +41,8 @@ def register(
         )
 
     user = User(
-        email=email,
-        password_hash=hash_password(password),
+        email=auth_data.email,
+        password_hash=hash_password(auth_data.password),
     )
 
     db.add(user)
@@ -53,13 +57,19 @@ def register(
 
 @router.post("/login")
 def login(
-    email: str,
-    password: str,
+    auth_data: AuthRequest,
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.email == email).first()
+    user = (
+        db.query(User)
+        .filter(User.email == auth_data.email)
+        .first()
+    )
 
-    if not user or not verify_password(password, user.password_hash):
+    if not user or not verify_password(
+        auth_data.password,
+        user.password_hash,
+    ):
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password",
@@ -104,15 +114,21 @@ def get_current_user(
             detail="Token has expired",
         )
 
-    except (jwt.InvalidTokenError, ValueError, TypeError):
+    except (
+        jwt.InvalidTokenError,
+        ValueError,
+        TypeError,
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
 
-    user = db.query(User).filter(
-        User.id == user_id
-    ).first()
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
 
     if user is None:
         raise HTTPException(
