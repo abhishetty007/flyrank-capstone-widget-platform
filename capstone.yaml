@@ -1,0 +1,97 @@
+id: flyrank-capstone-widget-platform
+
+name: Embeddable Widget & Lead-Capture Platform
+
+description: >
+  A FastAPI-based embeddable widget and lead-capture platform.
+  Authenticated widget owners can create and manage widgets,
+  embed them on external websites, collect validated submissions,
+  protect the public submission endpoint, enrich submissions
+  with geographic information, and view leads through a dashboard.
+
+stack:
+  language: Python
+  backend: FastAPI
+  database: PostgreSQL
+  orm: SQLAlchemy
+  migrations: Alembic
+  frontend: HTML/CSS/JavaScript
+  infrastructure: Docker Compose
+
+entrypoints:
+  backend: "uvicorn backend.app.main:app --reload"
+  customer_site: "python -m http.server 5500 --directory customer-site"
+
+services:
+  api: "http://127.0.0.1:8000"
+  customer_site: "http://127.0.0.1:5500"
+  database: "postgresql://127.0.0.1:5433/flyrank"
+
+features:
+  authentication:
+    - user registration
+    - JWT login
+    - bcrypt password hashing
+    - protected owner APIs
+
+  widgets:
+    - authenticated CRUD
+    - public widget configuration
+    - widget versioning
+    - embeddable JavaScript widget
+    - cache-control headers
+
+  submissions:
+    - cross-origin public submission endpoint
+    - request-size validation
+    - Pydantic validation
+    - rate limiting
+    - honeypot protection
+    - idempotency
+    - PostgreSQL persistence
+
+  enrichment:
+    - ip-api.com
+    - ipapi.co fallback
+    - graceful degradation when geo providers fail
+
+  background_jobs:
+    - notification job
+    - retry handling
+    - failure state
+    - failure alert
+
+  dashboard:
+    - authenticated submission listing
+    - tenant-isolated results
+    - geographic information
+
+security:
+  authentication: JWT
+  password_hashing: bcrypt
+  cors:
+    - "http://127.0.0.1:5500"
+    - "http://localhost:5500"
+  rate_limit:
+    requests: 5
+    window_seconds: 60
+  max_submission_size_bytes: 10240
+  secrets_from_environment: true
+
+testing:
+  command: '$env:PYTHONPATH="."; pytest -v'
+  automated_tests:
+    geo: 4
+    notifications: 1
+  expected_result: "5 passed"
+
+documentation:
+  design: docs/design.md
+  buildlog: BUILDLOG.md
+  evidence: EVIDENCE.md
+  readme: README.md
+
+scope:
+  deployment: local_development
+  notification_side_effect: console
+  geo_testing: deterministic_mocked_provider_tests

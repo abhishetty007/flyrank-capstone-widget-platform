@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>FlyRank Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #222;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-top: 0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .login-card {
+            max-width: 420px;
+            margin: 80px auto;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        button {
+            margin-top: 18px;
+            padding: 11px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #222;
+            color: white;
+            font-size: 14px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .logout {
+            float: right;
+            background: #c62828;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            flex: 1;
+            min-width: 200px;
+            background: #f8f9fc;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .stat-number {
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fc;
+        }
+
+        .message {
+            margin-top: 15px;
+            color: #c62828;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .empty {
+            text-align: center;
+            color: #777;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOGIN -->
+    <div
+        id="loginSection"
+        class="container"
+    >
+        <div class="card login-card">
+
+            <h1>FlyRank Dashboard</h1>
+
+            <p class="subtitle">
+                Owner dashboard
+            </p>
+
+            <form id="loginForm">
+
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    id="email"
+                    type="email"
+                    value="test@example.com"
+                    required
+                >
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    id="password"
+                    type="password"
+                    value="test123"
+                    required
+                >
+
+                <button type="submit">
+                    Login
+                </button>
+
+            </form>
+
+            <div
+                id="loginMessage"
+                class="message"
+            ></div>
+
+        </div>
+    </div>
+
+
+    <!-- DASHBOARD -->
+    <div
+        id="dashboardSection"
+        class="container hidden"
+    >
+
+        <button
+            id="logoutButton"
+            class="logout"
+        >
+            Logout
+        </button>
+
+        <h1>FlyRank Dashboard</h1>
+
+        <p class="subtitle">
+            Manage and monitor your widget submissions.
+        </p>
+
+
+        <!-- STATS -->
+        <div class="stats">
+
+            <div class="stat">
+
+                <div
+                    id="submissionCount"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+                <div class="stat-label">
+                    Total Submissions
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SUBMISSIONS -->
+        <div class="card">
+
+            <h2>Recent Submissions</h2>
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Country</th>
+                            <th>City</th>
+                            <th>Geo Provider</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="submissionsTable">
+                    </tbody>
+
+                </table>
+
+                <div
+                    id="emptyMessage"
+                    class="empty hidden"
+                >
+                    No submissions yet.
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+        "use strict";
+
+        const API_BASE_URL = "http://127.0.0.1:8000";
+
+        const loginSection =
+            document.getElementById("loginSection");
+
+        const dashboardSection =
+            document.getElementById("dashboardSection");
+
+        const loginForm =
+            document.getElementById("loginForm");
+
+        const loginMessage =
+            document.getElementById("loginMessage");
+
+        const logoutButton =
+            document.getElementById("logoutButton");
+
+        const submissionsTable =
+            document.getElementById("submissionsTable");
+
+        const submissionCount =
+            document.getElementById("submissionCount");
+
+        const emptyMessage =
+            document.getElementById("emptyMessage");
+
+
+        function showDashboard() {
+            loginSection.classList.add("hidden");
+            dashboardSection.classList.remove("hidden");
+        }
+
+
+        function showLogin() {
+            dashboardSection.classList.add("hidden");
+            loginSection.classList.remove("hidden");
+        }
+
+
+        async function login(email, password) {
+            const url = new URL(
+                `${API_BASE_URL}/auth/login`
+            );
+
+            url.searchParams.set("email", email);
+            url.searchParams.set("password", password);
+
+            const response = await fetch(
+                url.toString(),
+                {
+                    method: "POST"
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail || "Login failed."
+                );
+            }
+
+            localStorage.setItem(
+                "flyrank_token",
+                result.access_token
+            );
+
+            return result.access_token;
+        }
+
+
+        async function loadSubmissions() {
+            const token =
+                localStorage.getItem("flyrank_token");
+
+            if (!token) {
+                showLogin();
+                return;
+            }
+
+            const response = await fetch(
+                `${API_BASE_URL}/dashboard/submissions`,
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (response.status === 401) {
+                localStorage.removeItem("flyrank_token");
+                showLogin();
+                return;
+            }
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail || "Failed to load submissions."
+                );
+            }
+
+            renderSubmissions(result);
+        }
+
+
+        function renderSubmissions(submissions) {
+            submissionsTable.innerHTML = "";
+
+            submissionCount.textContent =
+                submissions.length;
+
+            if (submissions.length === 0) {
+                emptyMessage.classList.remove("hidden");
+                return;
+            }
+
+            emptyMessage.classList.add("hidden");
+
+            submissions.forEach((submission) => {
+                const row = document.createElement("tr");
+
+                const payload =
+                    submission.payload || {};
+
+                const name =
+                    payload.name || "-";
+
+                const email =
+                    payload.email || "-";
+
+                const country =
+                    submission.country || "-";
+
+                const city =
+                    submission.city || "-";
+
+                const provider =
+                    submission.geo_provider || "-";
+
+                const created =
+                    submission.created_at
+                        ? new Date(
+                            submission.created_at
+                        ).toLocaleString()
+                        : "-";
+
+                row.innerHTML = `
+                    <td>${submission.id}</td>
+                    <td>${escapeHtml(name)}</td>
+                    <td>${escapeHtml(email)}</td>
+                    <td>${escapeHtml(country)}</td>
+                    <td>${escapeHtml(city)}</td>
+                    <td>${escapeHtml(provider)}</td>
+                    <td>${escapeHtml(created)}</td>
+                `;
+
+                submissionsTable.appendChild(row);
+            });
+        }
+
+
+        function escapeHtml(value) {
+            const div = document.createElement("div");
+
+            div.textContent = String(value);
+
+            return div.innerHTML;
+        }
+
+
+        loginForm.addEventListener(
+            "submit",
+            async function (event) {
+                event.preventDefault();
+
+                loginMessage.textContent =
+                    "Logging in...";
+
+                const email =
+                    document.getElementById("email").value;
+
+                const password =
+                    document.getElementById("password").value;
+
+                try {
+                    await login(
+                        email,
+                        password
+                    );
+
+                    showDashboard();
+
+                    await loadSubmissions();
+
+                } catch (error) {
+                    loginMessage.textContent =
+                        error.message;
+                }
+            }
+        );
+
+
+        logoutButton.addEventListener(
+            "click",
+            function () {
+                localStorage.removeItem(
+                    "flyrank_token"
+                );
+
+                showLogin();
+            }
+        );
+
+
+        async function initialize() {
+            const token =
+                localStorage.getItem("flyrank_token");
+
+            if (!token) {
+                showLogin();
+                return;
+            }
+
+            try {
+                showDashboard();
+
+                await loadSubmissions();
+
+            } catch (error) {
+                console.error(error);
+
+                localStorage.removeItem(
+                    "flyrank_token"
+                );
+
+                showLogin();
+            }
+        }
+
+
+        initialize();
+    </script>
+
+</body>
+</html>
